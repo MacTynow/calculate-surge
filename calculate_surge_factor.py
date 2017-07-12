@@ -7,6 +7,7 @@
 # geoh_counts_sorted_dstream.pprint()  
 
 import json
+import sys
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
@@ -22,16 +23,16 @@ if __name__ == "__main__":
   ssc = StreamingContext(sc, 30)
 
 
-  brokers = "famous-gerbil-kf:9092"
-  topic = "pickups"
+  brokers = sys.argv[1]
+  topic = sys.argv[2]
   kvs = KafkaUtils.createDirectStream(ssc, [topic], {"metadata.broker.list": brokers})
 
 
   pickups = kvs.map(lambda v: json.loads(v[1]))
   pickup_dstream = pickups.map(lambda pickup: pickup['pickup_geohash'])
-  geoh_counts = pickup_dstream.countByValue()
+  geoh_counts = pickup_dstream.countByValue().mapValues(lambda x: x[1])
   geoh_counts.pprint()
 
-  
+
   ssc.start()
   ssc.awaitTermination()
